@@ -32,12 +32,12 @@ enum vga_color {
     VGA_COLOR_WHITE = 15,
 };
 
-static inline uint8_t vga_entry_color(enum vga_color fg, enum vga_color bg) {
-    return fg | bg << 4;
+static inline uint8_t vga_entry_color(enum vga_color fore, enum vga_color back) {
+    return fore | back << 4;
 }
 
-static inline uint16_t vga_entry(unsigned char uc, uint8_t color) {
-    return (uint16_t) uc | (uint16_t) color << 8;
+static inline uint16_t vga_entry(unsigned char c, uint8_t color) {
+    return (uint16_t) c | (uint16_t) color << 8;
 }
 
 size_t strlen(const char* str) {
@@ -57,7 +57,7 @@ uint16_t* terminal_buffer;
 void terminal_initialize(void) {
     terminal_row = 0;
     terminal_column = 0;
-    terminal_color = vga_entry_color(VGA_COLOR_LIGHT_BLUE, VGA_COLOR_BLUE);
+    terminal_color = vga_entry_color(VGA_COLOR_BLACK, VGA_COLOR_BLUE);
     terminal_buffer = (uint16_t*) 0xB8000;
     for (size_t y = 0; y < VGA_HEIGHT; y++) {
         for (size_t x = 0; x < VGA_WIDTH; x++) {
@@ -77,6 +77,11 @@ void terminal_putentryat(char c, uint8_t color, size_t x, size_t y) {
 }
 
 void terminal_putchar(char c) {
+    // Move down line if newline character
+    if (c == '\n') {
+        ++terminal_row;
+        terminal_column = 0;
+    }
     terminal_putentryat(c, terminal_color, terminal_column, terminal_row);
     if (++terminal_column == VGA_WIDTH) {
         terminal_column = 0;
@@ -99,6 +104,6 @@ void terminal_writestring(const char* data) {
 void kernel_main(void) {
     /* Intialize terminal interface */
     terminal_initialize();
-    
+
     terminal_writestring("Hello, kernel World!\n");
 }
