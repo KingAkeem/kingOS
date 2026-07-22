@@ -12,7 +12,7 @@
 #error "This kernel will only compile with a ix86-elf compiler"
 #endif
 
-/* Hardward text Mode color constants. */
+/* Hardware text mode color constants. */
 enum vga_color {
     VGA_COLOR_BLACK = 0,
     VGA_COLOR_BLUE = 1,
@@ -42,28 +42,35 @@ static inline uint16_t vga_entry(unsigned char c, uint8_t color) {
 
 size_t strlen(const char* str) {
     size_t len = 0;
-    while (str[len]) len ++;
+    while (str[len]) {
+        len++;
+    }
     return len;
 }
 
-static const size_t VGA_WIDTH = 80;
-static const size_t VGA_HEIGHT = 25;
+#define VGA_WIDTH 80
+#define VGA_HEIGHT 25
+#define TAB_WIDTH 4
 
-size_t terminal_row;
-size_t terminal_column;
-uint8_t terminal_color;
-uint16_t* terminal_buffer;
+static size_t terminal_row;
+static size_t terminal_column;
+static uint8_t terminal_color;
+static volatile uint16_t* terminal_buffer;
+
+static void terminal_clear_row(size_t row) {
+    for (size_t column = 0; column < VGA_WIDTH; column++) {
+        terminal_buffer[row * VGA_WIDTH + column] = vga_entry(' ', terminal_color);
+    }
+}
 
 void terminal_initialize(void) {
     terminal_row = 0;
     terminal_column = 0;
-    terminal_color = vga_entry_color(VGA_COLOR_BLACK, VGA_COLOR_BLUE);
+    terminal_color = vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
     terminal_buffer = (uint16_t*) 0xB8000;
-    for (size_t y = 0; y < VGA_HEIGHT; y++) {
-        for (size_t x = 0; x < VGA_WIDTH; x++) {
-            const size_t index = y * VGA_WIDTH + x;
-            terminal_buffer[index] = vga_entry(' ', terminal_color);
-        }
+
+    for (size_t row = 0; row < VGA_HEIGHT; row++) {
+        terminal_clear_row(row);
     }
 }
 
@@ -71,12 +78,18 @@ void terminal_setcolor(uint8_t color) {
     terminal_color = color;
 }
 
-void terminal_scroll() {
-    for(size_t row = 0; row < VGA_HEIGHT; row++) {
+static void terminal_scroll(void) {
+    for (size_t row = 1; row < VGA_HEIGHT; row++) {
         for (size_t column = 0; column < VGA_WIDTH; column++) {
-            terminal_buffer[column * VGA_WIDTH + row] = terminal_buffer[(column+1) * VGA_WIDTH + row];
+            const size_t from = row * VGA_WIDTH + column;
+            const size_t to = (row - 1) * VGA_WIDTH + column;
+            terminal_buffer[to] = terminal_buffer[from];
         }
     }
+
+    terminal_clear_row(VGA_HEIGHT - 1);
+    terminal_row = VGA_HEIGHT - 1;
+    terminal_column = 0;
 }
 
 void terminal_putentryat(char c, uint8_t color, size_t x, size_t y) {
@@ -84,30 +97,44 @@ void terminal_putentryat(char c, uint8_t color, size_t x, size_t y) {
     terminal_buffer[index] = vga_entry(c, color);
 }
 
-uint16_t current_color = VGA_COLOR_BLACK;
-void terminal_putchar(char c) {
-    // Move down line if newline character
-    if (c == '\n') {
-        ++terminal_row;
-        terminal_column = 0;
+static void terminal_newline(void) {
+    terminal_column = 0;
+
+    if (terminal_row + 1 >= VGA_HEIGHT) {
+        terminal_scroll();
     } else {
-        if (terminal_row == VGA_WIDTH) {
-            terminal_scroll();
-        }
-        if (current_color == VGA_COLOR_WHITE) {
-            current_color = 0;
-        }
-        terminal_color = vga_entry(current_color, VGA_COLOR_BLUE);
-        current_color += 1;
-        terminal_putentryat(c, terminal_color, terminal_column, terminal_row);
-        if (++terminal_column == VGA_WIDTH) {
-            terminal_column = 0;
-            if (++terminal_row == VGA_HEIGHT) {
-                terminal_row = 0;
-            }
-        } 
+        terminal_row++;
     }
-} 
+}
+
+void terminal_putchar(char c) {
+    switch (c) {
+    case '\n':
+        terminal_newline();
+        return;
+    case '\r':
+        terminal_column = 0;
+        return;
+    case '\t':
+        do {
+            terminal_putchar(' ');
+        } while (terminal_column % TAB_WIDTH != 0);
+        return;
+    case '\b':
+        if (terminal_column > 0) {
+            terminal_column--;
+            terminal_putentryat(' ', terminal_color, terminal_column, terminal_row);
+        }
+        return;
+    default:
+        terminal_putentryat(c, terminal_color, terminal_column, terminal_row);
+
+        if (++terminal_column >= VGA_WIDTH) {
+            terminal_newline();
+        }
+        return;
+    }
+}
 
 void terminal_write(const char* data, size_t size) {
     for (size_t i = 0; i < size; i++) {
@@ -119,11 +146,51 @@ void terminal_writestring(const char* data) {
     terminal_write(data, strlen(data));
 }
 
-void kernel_main(void) {
-    /* Intialize terminal interface */
-    terminal_initialize();
-    for(size_t i = 0; i < 20; i++) {
-        terminal_writestring("Something\n");
+void terminal_write_dec(size_t value) {
+    char digits[20];
+    size_t length = 0;
+
+    if (value == 0) {
+        terminal_putchar('0');
+        return;
     }
-    terminal_writestring("Hello, kernel World!\n");
+
+    while (value > 0 && length < sizeof(digits)) {
+        digits[length++] = (char) ('0' + value % 10);
+        value /= 10;
+    }
+
+    while (length > 0) {
+        terminal_putchar(digits[--length]);
+    }
+}
+
+void terminal_writestring_colored(const char* data, enum vga_color foreground, enum vga_color background) {
+    const uint8_t previous_color = terminal_color;
+    terminal_setcolor(vga_entry_color(foreground, background));
+    terminal_writestring(data);
+    terminal_setcolor(previous_color);
+}
+
+static void terminal_write_header(void) {
+    terminal_writestring_colored("kingOS", VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
+    terminal_writestring(" - tiny ix86 kernel\n");
+    terminal_writestring_colored("OK", VGA_COLOR_BLACK, VGA_COLOR_LIGHT_GREEN);
+    terminal_writestring(" VGA terminal initialized\n\n");
+}
+
+void kernel_main(void) {
+    /* Initialize terminal interface. */
+    terminal_initialize();
+    terminal_write_header();
+    terminal_writestring("Hello, kernel world!\n");
+    terminal_writestring("Features: wrapping, scrolling, tabs\tand colored output.\n\n");
+
+    for (size_t line = 1; line <= 30; line++) {
+        terminal_writestring("scroll test line ");
+        terminal_write_dec(line);
+        terminal_putchar('\n');
+    }
+
+    terminal_writestring_colored("System halted.", VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
 }

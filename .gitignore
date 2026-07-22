@@ -1,2 +1,4 @@
 # Ignore output files
 *.o
+boot/kingos.bin
+kingos.iso

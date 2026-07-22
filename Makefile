@@ -1,19 +1,39 @@
-CC=i686-elf-gcc
-ASM=i686-elf-as
-CFLAGS=-ffreestanding -O2
-default: all
+CC = i686-elf-gcc
+AS = i686-elf-as
+QEMU = qemu-system-i386
+GRUB_MKRESCUE = grub-mkrescue
+GRUB_FILE = grub-file
 
-all: bootloader kernel linker iso start
+CFLAGS := -std=gnu99 -ffreestanding -O2 -Wall -Wextra -Werror
+LDFLAGS := -T linker.ld -ffreestanding -O2 -nostdlib
+
+KERNEL := boot/kingos.bin
+ISO := kingos.iso
+OBJECTS := bootloader.o kernel.o
+
+.PHONY: all clean iso run check
+
+all: $(ISO)
+
+$(ISO): $(KERNEL) boot/grub/grub.cfg
+	$(GRUB_MKRESCUE) -o $@ .
+
+$(KERNEL): $(OBJECTS) linker.ld
+	$(CC) $(LDFLAGS) -o $@ $(OBJECTS) -lgcc
+
+bootloader.o: bootloader.s
+	$(AS) $< -o $@
+
+kernel.o: kernel.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+iso: $(ISO)
+
+check: $(KERNEL)
+	$(GRUB_FILE) --is-x86-multiboot $(KERNEL)
+
+run: $(ISO)
+	$(QEMU) -cdrom $(ISO)
 
 clean:
-	rm bootloader.o kernel.o boot/kingos.bin kingos.iso 
-bootloader: 
-	$(ASM) bootloader.s -o bootloader.o	
-kernel:
-	$(CC) $(CFLAGS) -c kernel.c -o kernel.o -std=gnu99 -Wall -Wextra
-linker:
-	$(CC) $(CFLAGS) -T linker.ld -o boot/kingos.bin -nostdlib bootloader.o kernel.o -lgcc 
-iso:
-	grub-mkrescue -o kingos.iso .
-start:
-	qemu-system-i386 -cdrom kingos.iso
+	rm -f $(OBJECTS) $(KERNEL) $(ISO)
