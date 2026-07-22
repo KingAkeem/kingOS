@@ -17,6 +17,7 @@ All notable changes to kingOS will be documented in this file.
 - Made the linker command configurable through `LD`.
 - Updated the linker script section alignment syntax to work with both GNU ld and LLD.
 - Made the kernel build explicitly non-PIC and non-PIE.
+- Removed generated kernel and ISO artifacts from source control.
 
 ## v0.1.0 - 2026-07-22
 

@@ -18,6 +18,7 @@ OBJECTS := bootloader.o kernel.o
 all: $(ISO)
 
 $(ISO): $(KERNEL) boot/grub/grub.cfg
+	rm -f $@
 	$(GRUB_MKRESCUE) -o $@ .
 
 $(KERNEL): $(OBJECTS) linker.ld
