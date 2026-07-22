@@ -15,6 +15,7 @@ All notable changes to kingOS will be documented in this file.
 
 - Made linker libraries configurable through `LDLIBS` so CI can build with Clang/LLD while the default GCC cross-toolchain still links with `-lgcc`.
 - Updated the linker script section alignment syntax to work with both GNU ld and LLD.
+- Made the kernel build explicitly non-PIC and non-PIE.
 
 ## v0.1.0 - 2026-07-22
 

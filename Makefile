@@ -4,8 +4,8 @@ QEMU = qemu-system-i386
 GRUB_MKRESCUE = grub-mkrescue
 GRUB_FILE = grub-file
 
-CFLAGS := -std=gnu99 -ffreestanding -O2 -Wall -Wextra -Werror
-LDFLAGS := -T linker.ld -ffreestanding -O2 -nostdlib
+CFLAGS := -std=gnu99 -ffreestanding -O2 -Wall -Wextra -Werror -fno-pic -fno-pie
+LDFLAGS := -T linker.ld -ffreestanding -O2 -nostdlib -no-pie
 LDLIBS := -lgcc
 
 KERNEL := boot/kingos.bin

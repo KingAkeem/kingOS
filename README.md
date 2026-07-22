@@ -69,7 +69,7 @@ ISO tools installed:
 make \
   CC="clang --target=i386-elf" \
   AS="clang --target=i386-elf -c" \
-  LDFLAGS="-T linker.ld -ffreestanding -O2 -nostdlib -fuse-ld=lld" \
+  LDFLAGS="-T linker.ld -ffreestanding -O2 -nostdlib -no-pie -fuse-ld=lld" \
   LDLIBS=
 ```
 
