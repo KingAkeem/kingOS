@@ -66,7 +66,11 @@ You can run the same LLVM-backed build locally if you have Clang, LLD, GRUB, and
 ISO tools installed:
 
 ```sh
-make CC="clang --target=i386-elf -fuse-ld=lld" AS="clang --target=i386-elf -c" LDLIBS=
+make \
+  CC="clang --target=i386-elf" \
+  AS="clang --target=i386-elf -c" \
+  LDFLAGS="-T linker.ld -ffreestanding -O2 -nostdlib -fuse-ld=lld" \
+  LDLIBS=
 ```
 
 ## Project Structure

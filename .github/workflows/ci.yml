@@ -31,8 +31,9 @@ jobs:
       - name: Build ISO
         run: |
           make \
-            CC="clang --target=i386-elf -fuse-ld=lld" \
+            CC="clang --target=i386-elf" \
             AS="clang --target=i386-elf -c" \
+            LDFLAGS="-T linker.ld -ffreestanding -O2 -nostdlib -fuse-ld=lld" \
             LDLIBS=
 
       - name: Validate Multiboot image
