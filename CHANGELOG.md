@@ -8,6 +8,7 @@ All notable changes to kingOS will be documented in this file.
 
 - Added GitHub Actions CI to build and validate the ISO on pushes and pull requests.
 - Added release automation that creates missing `v*` tag releases and attaches `kingos.iso`.
+- Added manual CI runs through GitHub Actions workflow dispatch.
 - Documented the LLVM-backed CI build path.
 
 ### Changed
