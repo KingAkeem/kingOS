@@ -6,6 +6,7 @@ GRUB_FILE = grub-file
 
 CFLAGS := -std=gnu99 -ffreestanding -O2 -Wall -Wextra -Werror
 LDFLAGS := -T linker.ld -ffreestanding -O2 -nostdlib
+LDLIBS := -lgcc
 
 KERNEL := boot/kingos.bin
 ISO := kingos.iso
@@ -19,7 +20,7 @@ $(ISO): $(KERNEL) boot/grub/grub.cfg
 	$(GRUB_MKRESCUE) -o $@ .
 
 $(KERNEL): $(OBJECTS) linker.ld
-	$(CC) $(LDFLAGS) -o $@ $(OBJECTS) -lgcc
+	$(CC) $(LDFLAGS) -o $@ $(OBJECTS) $(LDLIBS)
 
 bootloader.o: bootloader.s
 	$(AS) $< -o $@

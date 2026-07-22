@@ -2,6 +2,18 @@
 
 All notable changes to kingOS will be documented in this file.
 
+## Unreleased
+
+### Added
+
+- Added GitHub Actions CI to build and validate the ISO on pushes and pull requests.
+- Added release automation that creates missing `v*` tag releases and attaches `kingos.iso`.
+- Documented the LLVM-backed CI build path.
+
+### Changed
+
+- Made linker libraries configurable through `LDLIBS` so CI can build with Clang/LLD while the default GCC cross-toolchain still links with `-lgcc`.
+
 ## v0.1.0 - 2026-07-22
 
 ### Added

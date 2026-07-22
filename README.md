@@ -53,8 +53,26 @@ To remove generated files:
 make clean
 ```
 
+## Continuous Integration
+
+GitHub Actions builds and validates the ISO on pushes and pull requests to
+`main`. The workflow uses Clang's `i386-elf` target so CI does not need to build
+a full cross-compiler toolchain.
+
+When a version tag such as `v0.1.1` is pushed, the workflow creates the GitHub
+release if needed and uploads the freshly built `kingos.iso`.
+
+You can run the same LLVM-backed build locally if you have Clang, LLD, GRUB, and
+ISO tools installed:
+
+```sh
+make CC="clang --target=i386-elf -fuse-ld=lld" AS="clang --target=i386-elf -c" LDLIBS=
+```
+
 ## Project Structure
 
+- `.github/workflows/ci.yml`: GitHub Actions build, validation, artifact, and
+  release upload workflow.
 - `bootloader.s`: Multiboot header and early x86 setup.
 - `kernel.c`: Freestanding kernel entry point and VGA terminal.
 - `linker.ld`: Kernel linker script.

@@ -1,0 +1,56 @@
+name: Build kingOS
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build and validate ISO
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang lld grub-pc-bin xorriso mtools
+
+      - name: Build ISO
+        run: |
+          make \
+            CC="clang --target=i386-elf -fuse-ld=lld" \
+            AS="clang --target=i386-elf -c" \
+            LDLIBS=
+
+      - name: Validate Multiboot image
+        run: make check GRUB_FILE=grub-file
+
+      - name: Upload ISO artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kingos-iso
+          path: kingos.iso
+          if-no-files-found: error
+
+      - name: Publish release ISO
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            gh release create "${GITHUB_REF_NAME}" --title "kingOS ${GITHUB_REF_NAME}" --generate-notes
+          fi
+
+          gh release upload "${GITHUB_REF_NAME}" kingos.iso --clobber
