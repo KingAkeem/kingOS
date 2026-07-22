@@ -1,5 +1,6 @@
 CC = i686-elf-gcc
 AS = i686-elf-as
+LD = $(CC)
 QEMU = qemu-system-i386
 GRUB_MKRESCUE = grub-mkrescue
 GRUB_FILE = grub-file
@@ -20,7 +21,7 @@ $(ISO): $(KERNEL) boot/grub/grub.cfg
 	$(GRUB_MKRESCUE) -o $@ .
 
 $(KERNEL): $(OBJECTS) linker.ld
-	$(CC) $(LDFLAGS) -o $@ $(OBJECTS) $(LDLIBS)
+	$(LD) $(LDFLAGS) -o $@ $(OBJECTS) $(LDLIBS)
 
 bootloader.o: bootloader.s
 	$(AS) $< -o $@
